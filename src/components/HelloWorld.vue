@@ -28,7 +28,6 @@ export default {
 
     onMounted(() => {
       if ('DeviceMotionEvent' in window) {
-        console.log("DeviceMotionEvent in window")
         // TODO: add Permission API for iOS
         window.addEventListener('devicemotion', handleMotion)
       } else {
@@ -38,7 +37,6 @@ export default {
 
       // TODO: debug only, remove later
       if ('DeviceOrientationEvent' in window) {
-        console.log("DeviceOrientationEvent in window")
         window.addEventListener('deviceorientation', handleOrientation)
       } else {
         errorMsg.value = 'DeviceOrientationEvent is not supported.'
@@ -47,7 +45,6 @@ export default {
     })
 
     const handleMotion = (event) => {
-      console.log("handleMotion...")
       const acc = event.accelerationIncludingGravity
       if (!acc) return
 
@@ -55,9 +52,6 @@ export default {
       accelerometerX.value = acc.x
       accelerometerY.value = acc.y
       accelerometerZ.value = acc.z
-      console.log("acc.x: ", acc.x)
-      console.log("acc.y: ", acc.y)
-      console.log("acc.z: ", acc.z)
 
       const totalAcceleration = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
 
