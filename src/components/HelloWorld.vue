@@ -13,41 +13,63 @@ export default {
     const heightScore = ref(0)
     const errorMsg = ref('')
 
+    const accelerometerX = ref(0)
+    const accelerometerY = ref(0)
+    const accelerometerZ = ref(0)
+
     let startTime = null
     let endTime = null
     let falling = false
 
     onMounted(() => {
-      if (!('Accelerometer' in window)) {
-        errorMsg.value = 'Accelerometer not supported'
-        return
-      }
+      console.log("onMounted...")
+
+      // if (!('Accelerometer' in window)) {
+      //   errorMsg.value = 'Accelerometer not supported'
+      //   console.error('Accelerometer not supported')
+      //   return
+      // }
 
       const accelerometer = new Accelerometer({ frequency: 60 })
 
-      accelerometer.addEventListener('reading', () => {
-        const totalAcceleration = Math.sqrt(
-          accelerometer.x ** 2 +
-          accelerometer.y ** 2 +
-          accelerometer.z ** 2
-        )
+      if ('Accelerometer' in window) {
+        console.log("Accelerometer in window")
+        accelerometer.addEventListener('reading', () => {
+          console.log("reading...")
+          // console上で 加速度をみる
+          accelerometerX.value = accelerometer.x
+          accelerometerY.value = accelerometer.y
+          accelerometerZ.value = accelerometer.z
+          console.log(accelerometer.x, accelerometer.y, accelerometer.z)
+          
+          const totalAcceleration = Math.sqrt(
+            accelerometer.x ** 2 +
+            accelerometer.y ** 2 +
+            accelerometer.z ** 2
+          )
 
-        // 落下開始の判定
-        if (totalAcceleration < FALL_THRESHOLD && !falling) {
-          falling = true
-          startTime = performance.now()
-        }
+          // 落下開始の判定
+          if (totalAcceleration < FALL_THRESHOLD && !falling) {
+            falling = true
+            startTime = performance.now()
+          }
 
-        // 地面衝突の判定
-        if (falling && totalAcceleration > GRAVITY * 2) {
-          falling = false
-          endTime = performance.now()
+          // 地面衝突の判定
+          if (falling && totalAcceleration > GRAVITY * 2) {
+            falling = false
+            endTime = performance.now()
 
-          const fallTime = (endTime - startTime) / 1000
-          height.value = 0.5 * GRAVITY * fallTime ** 2
-          heightScore.value = calculateHeightScore(height.value)
-        }
-      })
+            const fallTime = (endTime - startTime) / 1000
+            height.value = 0.5 * GRAVITY * fallTime ** 2
+            heightScore.value = calculateHeightScore(height.value)
+          }
+
+          accelerometer.start()
+        })
+      } else {
+        errorMsg.value = 'Accelerometer not supported'
+        console.error('Accelerometer not supported')
+      }
     })
 
     const calculateHeightScore = (h) => {
@@ -58,6 +80,9 @@ export default {
     }
 
     return {
+      accelerometerX,
+      accelerometerY,
+      accelerometerZ,
       errorMsg,
       height,
       heightScore,
@@ -78,6 +103,12 @@ export default {
     <p v-else>
       <span class="read-the-docs">Jump to see your score!</span>
     </p>
+  </div>
+
+  <div>
+    <p>accelerometerX: {{ accelerometerX }}</p>
+    <p>accelerometerY: {{ accelerometerY }}</p>
+    <p>accelerometerZ: {{ accelerometerZ }}</p>
   </div>
 </template>
 
