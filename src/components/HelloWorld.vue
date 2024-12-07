@@ -21,56 +21,65 @@ export default {
     let endTime = null
     let falling = false
 
+    // TODO: debug only, remove later
+    const orientaionAlpha = ref(0)
+    const orientaionBeta = ref(0)
+    const orientaionGamma = ref(0)
+
     onMounted(() => {
-      console.log("onMounted...")
-
-      // if (!('Accelerometer' in window)) {
-      //   errorMsg.value = 'Accelerometer not supported'
-      //   console.error('Accelerometer not supported')
-      //   return
-      // }
-
-      const accelerometer = new Accelerometer({ frequency: 60 })
-
-      if ('Accelerometer' in window) {
-        console.log("Accelerometer in window")
-        accelerometer.addEventListener('reading', () => {
-          console.log("reading...")
-          // console上で 加速度をみる
-          accelerometerX.value = accelerometer.x
-          accelerometerY.value = accelerometer.y
-          accelerometerZ.value = accelerometer.z
-          console.log(accelerometer.x, accelerometer.y, accelerometer.z)
-          
-          const totalAcceleration = Math.sqrt(
-            accelerometer.x ** 2 +
-            accelerometer.y ** 2 +
-            accelerometer.z ** 2
-          )
-
-          // 落下開始の判定
-          if (totalAcceleration < FALL_THRESHOLD && !falling) {
-            falling = true
-            startTime = performance.now()
-          }
-
-          // 地面衝突の判定
-          if (falling && totalAcceleration > GRAVITY * 2) {
-            falling = false
-            endTime = performance.now()
-
-            const fallTime = (endTime - startTime) / 1000
-            height.value = 0.5 * GRAVITY * fallTime ** 2
-            heightScore.value = calculateHeightScore(height.value)
-          }
-
-          accelerometer.start()
-        })
+      if ('DeviceMotionEvent' in window) {
+        console.log("DeviceMotionEvent in window")
+        // TODO: add Permission API for iOS
+        window.addEventListener('devicemotion', handleMotion)
       } else {
-        errorMsg.value = 'Accelerometer not supported'
-        console.error('Accelerometer not supported')
+        errorMsg.value = 'DeviceMotionEvent is not supported.'
+        console.error(errorMsg.value)
+      }
+
+      // TODO: debug only, remove later
+      if ('DeviceOrientationEvent' in window) {
+        console.log("DeviceOrientationEvent in window")
+        window.addEventListener('deviceorientation', handleOrientation)
+      } else {
+        errorMsg.value = 'DeviceOrientationEvent is not supported.'
+        console.error(errorMsg.value)
       }
     })
+
+    const handleMotion = (event) => {
+      console.log("handleMotion...")
+      const acc = event.accelerationIncludingGravity
+      if (!acc) return
+
+      // TODO: debug only, remove later
+      accelerometerX.value = acc.x
+      accelerometerY.value = acc.y
+      accelerometerZ.value = acc.z
+      console.log("acc.x: ", acc.x)
+      console.log("acc.y: ", acc.y)
+      console.log("acc.z: ", acc.z)
+
+      const totalAcceleration = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
+
+      // 落下開始の判定
+      if (totalAcceleration < FALL_THRESHOLD && !falling) {
+        falling = true
+        startTime = performance.now()
+      } else if (falling && totalAcceleration > GRAVITY * 2) {
+        falling = false
+        endTime = performance.now()
+
+        const fallTime = (endTime - startTime) / 1000
+        height.value = 0.5 * GRAVITY * fallTime ** 2
+        heightScore.value = calculateHeightScore(height.value)
+      }
+    }
+
+    const handleOrientation = (event) => {
+      orientaionAlpha.value = event.alpha
+      orientaionBeta.value = event.beta
+      orientaionGamma.value = event.gamma
+    }
 
     const calculateHeightScore = (h) => {
       if (h < 0.5) return 5
@@ -86,6 +95,9 @@ export default {
       errorMsg,
       height,
       heightScore,
+      orientaionAlpha,
+      orientaionBeta,
+      orientaionGamma,
     }
   },
 }
@@ -109,6 +121,12 @@ export default {
     <p>accelerometerX: {{ accelerometerX }}</p>
     <p>accelerometerY: {{ accelerometerY }}</p>
     <p>accelerometerZ: {{ accelerometerZ }}</p>
+  </div>
+
+  <div>
+    <p>orientaionAlpha: {{ orientaionAlpha }}</p>
+    <p>orientaionBeta: {{ orientaionBeta }}</p>
+    <p>orientaionGamma: {{ orientaionGamma }}</p>
   </div>
 </template>
 
