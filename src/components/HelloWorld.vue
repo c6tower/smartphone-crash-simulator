@@ -1,39 +1,84 @@
-<script setup>
-import { ref } from 'vue'
+<script>
+import { ref, onMounted } from 'vue'
 
-defineProps({
-  msg: String,
-})
+export default {
+  props: {
+    msg: String,
+  },
+  setup() {
+    const GRAVITY = 9.8
+    const FALL_THRESHOLD = 2.0
 
-const count = ref(0)
+    const height = ref(0)
+    const heightScore = ref(0)
+    const errorMsg = ref('')
+
+    let startTime = null
+    let endTime = null
+    let falling = false
+
+    onMounted(() => {
+      if (!('Accelerometer' in window)) {
+        errorMsg.value = 'Accelerometer not supported'
+        return
+      }
+
+      const accelerometer = new Accelerometer({ frequency: 60 })
+
+      accelerometer.addEventListener('reading', () => {
+        const totalAcceleration = Math.sqrt(
+          accelerometer.x ** 2 +
+          accelerometer.y ** 2 +
+          accelerometer.z ** 2
+        )
+
+        // 落下開始の判定
+        if (totalAcceleration < FALL_THRESHOLD && !falling) {
+          falling = true
+          startTime = performance.now()
+        }
+
+        // 地面衝突の判定
+        if (falling && totalAcceleration > GRAVITY * 2) {
+          falling = false
+          endTime = performance.now()
+
+          const fallTime = (endTime - startTime) / 1000
+          height.value = 0.5 * GRAVITY * fallTime ** 2
+          heightScore.value = calculateHeightScore(height.value)
+        }
+      })
+    })
+
+    const calculateHeightScore = (h) => {
+      if (h < 0.5) return 5
+      if (h < 1.0) return 10
+      if (h < 1.5) return 15
+      return 20
+    }
+
+    return {
+      errorMsg,
+      height,
+      heightScore,
+    }
+  },
+}
 </script>
 
 <template>
   <h1>{{ msg }}</h1>
-
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
+  <div>
+    <p v-if="errorMsg">{{ errorMsg }}</p>
+    <p v-else-if="heightScore > 0">
+      You jumped {{ height.toFixed(2) }} meters high!
+      <br>
+      Your score is {{ heightScore }}.
+    </p>
+    <p v-else>
+      <span class="read-the-docs">Jump to see your score!</span>
     </p>
   </div>
-
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
 </template>
 
 <style scoped>
