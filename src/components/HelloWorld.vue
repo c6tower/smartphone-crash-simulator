@@ -1,10 +1,10 @@
 <script>
 import { ref, onMounted, watch } from 'vue'
-import level1 from '/src/assets/se/level_1.mp3'
-import level2 from '/src/assets/se/level_2.mp3'
-import level3 from '/src/assets/se/level_3.mp3'
-import level4 from '/src/assets/se/level_4.mp3'
-import level5 from '/src/assets/se/level_5.mp3'
+import seLevel1 from '/src/assets/se/level_1.mp3'
+import seLevel2 from '/src/assets/se/level_2.mp3'
+import seLevel3 from '/src/assets/se/level_3.mp3'
+import seLevel4 from '/src/assets/se/level_4.mp3'
+import seLevel5 from '/src/assets/se/level_5.mp3'
 
 export default {
   props: {
@@ -14,9 +14,15 @@ export default {
     const GRAVITY = 9.8
     const FALL_THRESHOLD = 2.0
 
+    const errorMsg = ref('')
+
     const height = ref(0)
     const heightScore = ref(0)
-    const errorMsg = ref('')
+    const isUpsideDown = ref(false)
+    const orientationScore = ref(0)
+    const totalScore = ref(0)
+
+    const hasCollided = ref(false)
 
     const accelerometerX = ref(0)
     const accelerometerY = ref(0)
@@ -36,7 +42,7 @@ export default {
         // TODO: add Permission API for iOS
         window.addEventListener('devicemotion', handleMotion)
       } else {
-        errorMsg.value = 'DeviceMotionEvent is not supported.'
+        errorMsg.value = 'お使いの端末は加速度センサーに対応していません。'
         console.error(errorMsg.value)
       }
 
@@ -44,30 +50,29 @@ export default {
       if ('DeviceOrientationEvent' in window) {
         window.addEventListener('deviceorientation', handleOrientation)
       } else {
-        errorMsg.value = 'DeviceOrientationEvent is not supported.'
+        errorMsg.value = 'お使いの端末はジャイロセンサーに対応していません。'
         console.error(errorMsg.value)
       }
     })
 
-    watch(heightScore, (newVal) => {
-      playSoundEffect(newVal)
+    // 衝突を検知した際の処理
+    watch(hasCollided, (newVal) => {
+      if (newVal) {
+        heightScore.value += calculateHeightScore(height.value)
+        orientationScore.value += calculateOrientationScore(isUpsideDown.value)
+        totalScore.value = heightScore.value + orientationScore.value
+
+        console.log('heightScore:', heightScore.value)
+        console.log('orientationScore:', orientationScore.value)
+        console.log('totalScore:', totalScore.value)
+
+        hasCollided.value = false
+      }
     })
 
-    const playSoundEffect = (score) => {
-      const audio = new Audio()
-      if (score < 5) {
-        audio.src = level1
-      } else if (score < 10) {
-        audio.src = level2
-      } else if (score < 15) {
-        audio.src = level3
-      } else if (score < 20) {
-        audio.src = level4
-      } else {
-        audio.src = level5
-      }
-      audio.play()
-    }
+    watch(totalScore, (newVal) => {
+      playSoundEffect(newVal)
+    })
 
     const handleMotion = (event) => {
       const acc = event.accelerationIncludingGravity
@@ -80,19 +85,25 @@ export default {
 
       const totalAcceleration = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
 
-      // TODO: 一度計算したスコアを更新するタイミングを考える
-
-      // 落下開始の判定
+      // 落下開始/終了の判定
       if (totalAcceleration < FALL_THRESHOLD && !falling) {
         falling = true
         startTime = performance.now()
+        isUpsideDown.value = false
       } else if (falling && totalAcceleration > GRAVITY * 2) {
         falling = false
         endTime = performance.now()
 
         const fallTime = (endTime - startTime) / 1000
         height.value = 0.5 * GRAVITY * fallTime ** 2
-        heightScore.value = calculateHeightScore(height.value)
+
+        // 落下時に画面が地面に向いていたかどうかの判定
+        if (orientaionBeta.value < -170 || orientaionBeta.value > 170) {
+          isUpsideDown.value = true
+        }
+
+        hasCollided.value = true
+        // TODO: triggerCollisionEvent() を実装しても良いかも
       }
     }
 
@@ -100,18 +111,56 @@ export default {
       orientaionAlpha.value = event.alpha
       orientaionBeta.value = event.beta
       orientaionGamma.value = event.gamma
+
+      if (orientaionBeta.value < -170 || orientaionBeta.value > 170) {
+        isUpsideDown.value = true
+      } else {
+        isUpsideDown.value = false
+      }
     }
 
     const calculateHeightScore = (h) => {
       if (h < 0.2) return 0
-      if (h < 0.5) return 5
-      if (h < 1.0) return 10
-      if (h < 1.5) return 15
-      return 20
+      if (h < 0.5) return 1
+      if (h < 1.0) return 2
+      if (h < 1.5) return 3
+      if (h < 2.0) return 4
+      return 5
     }
 
-    const debugAddScore = () => {
-      heightScore.value += 1
+    const calculateOrientationScore = (isUpsideDown) => {
+      return isUpsideDown ? 1 : 0
+    }
+
+    const playSoundEffect = (score) => {
+      const audio = new Audio()
+      if (score < 5) {
+        audio.src = seLevel1
+      } else if (score < 10) {
+        audio.src = seLevel2
+      } else if (score < 15) {
+        audio.src = seLevel3
+      } else if (score < 20) {
+        audio.src = seLevel4
+      } else {
+        audio.src = seLevel5
+      }
+      audio.play()
+    }
+
+    const isDebug = ref(true)
+    const debugAddHeightScore = () => {
+      heightScore.value++
+    }
+    const debugAddOrientationScore = () => {
+      orientationScore.value++
+    }
+    const debugHasCollided = () => {
+      if (hasCollided.value) {
+        hasCollided.value = false
+      } else {
+        hasCollided.value = true
+      }
     }
 
 
@@ -122,10 +171,15 @@ export default {
       errorMsg,
       height,
       heightScore,
+      isDebug,
       orientaionAlpha,
       orientaionBeta,
       orientaionGamma,
-      debugAddScore,
+      orientationScore,
+      debugAddHeightScore,
+      debugAddOrientationScore,
+      debugHasCollided,
+      hasCollided,
     }
   },
 }
@@ -135,30 +189,37 @@ export default {
   <h1>{{ msg }}</h1>
   <div>
     <p v-if="errorMsg">{{ errorMsg }}</p>
-    <p v-else-if="heightScore > 0">
-      You jumped {{ height.toFixed(2) }} meters high!
-      <br>
-      Your score is {{ heightScore }}.
-    </p>
     <p v-else>
-      <span class="read-the-docs">Jump to see your score!</span>
+      Current Damage to Your Smartphone: {{ heightScore }}
+    </p>
+
+    <p v-if="heightScore > 0">
+      Height of the Drop (meters): {{ height.toFixed(2) }}
     </p>
   </div>
 
-  <div>
-    <button @click="debugAddScore">test</button>
-  </div>
+  <div v-show="isDebug">
+    <div>
+      <button @click="debugAddHeightScore">add height score</button>
+      <br>
+      <button @click="debugAddOrientationScore">add orientation score</button>
+      <br>
+      <button @click="debugHasCollided">hasCollided: {{ hasCollided }}</button>
+    </div>
 
-  <div>
-    <p>accelerometerX: {{ accelerometerX }}</p>
-    <p>accelerometerY: {{ accelerometerY }}</p>
-    <p>accelerometerZ: {{ accelerometerZ }}</p>
-  </div>
+    <div>
+      <p>accelerometerX: {{ accelerometerX }}</p>
+      <p>accelerometerY: {{ accelerometerY }}</p>
+      <p>accelerometerZ: {{ accelerometerZ }}</p>
+      <p>heightScore: {{ heightScore }}</p>
+    </div>
 
-  <div>
-    <p>orientaionAlpha: {{ orientaionAlpha }}</p>
-    <p>orientaionBeta: {{ orientaionBeta }}</p>
-    <p>orientaionGamma: {{ orientaionGamma }}</p>
+    <div>
+      <p>orientaionAlpha: {{ orientaionAlpha }}</p>
+      <p>orientaionBeta: {{ orientaionBeta }}</p>
+      <p>orientaionGamma: {{ orientaionGamma }}</p>
+      <p>orientationScore: {{ orientationScore }}</p>
+    </div>
   </div>
 </template>
 
