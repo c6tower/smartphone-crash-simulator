@@ -1,5 +1,10 @@
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import level1 from '/src/assets/se/level_1.mp3'
+import level2 from '/src/assets/se/level_2.mp3'
+import level3 from '/src/assets/se/level_3.mp3'
+import level4 from '/src/assets/se/level_4.mp3'
+import level5 from '/src/assets/se/level_5.mp3'
 
 export default {
   props: {
@@ -44,6 +49,26 @@ export default {
       }
     })
 
+    watch(heightScore, (newVal) => {
+      playSoundEffect(newVal)
+    })
+
+    const playSoundEffect = (score) => {
+      const audio = new Audio()
+      if (score < 5) {
+        audio.src = level1
+      } else if (score < 10) {
+        audio.src = level2
+      } else if (score < 15) {
+        audio.src = level3
+      } else if (score < 20) {
+        audio.src = level4
+      } else {
+        audio.src = level5
+      }
+      audio.play()
+    }
+
     const handleMotion = (event) => {
       const acc = event.accelerationIncludingGravity
       if (!acc) return
@@ -54,6 +79,8 @@ export default {
       accelerometerZ.value = acc.z
 
       const totalAcceleration = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
+
+      // TODO: 一度計算したスコアを更新するタイミングを考える
 
       // 落下開始の判定
       if (totalAcceleration < FALL_THRESHOLD && !falling) {
@@ -76,11 +103,17 @@ export default {
     }
 
     const calculateHeightScore = (h) => {
+      if (h < 0.2) return 0
       if (h < 0.5) return 5
       if (h < 1.0) return 10
       if (h < 1.5) return 15
       return 20
     }
+
+    const debugAddScore = () => {
+      heightScore.value += 1
+    }
+
 
     return {
       accelerometerX,
@@ -92,6 +125,7 @@ export default {
       orientaionAlpha,
       orientaionBeta,
       orientaionGamma,
+      debugAddScore,
     }
   },
 }
@@ -109,6 +143,10 @@ export default {
     <p v-else>
       <span class="read-the-docs">Jump to see your score!</span>
     </p>
+  </div>
+
+  <div>
+    <button @click="debugAddScore">test</button>
   </div>
 
   <div>
