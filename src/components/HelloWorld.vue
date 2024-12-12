@@ -28,6 +28,9 @@ export default {
     const accelerometerY = ref(0)
     const accelerometerZ = ref(0)
 
+    // スコア閾値
+    const MAX_HP = 10
+
     let startTime = null
     let endTime = null
     let falling = false
@@ -58,20 +61,25 @@ export default {
     // 衝突を検知した際の処理
     watch(hasCollided, (newVal) => {
       if (newVal) {
-        heightScore.value += calculateHeightScore(height.value)
-        orientationScore.value += calculateOrientationScore(isUpsideDown.value)
+        const tmpHeightScore = calculateHeightScore(height.value)
+        const tmpOrientationScore = calculateOrientationScore(isUpsideDown.value)
+
+        heightScore.value += tmpHeightScore
+        orientationScore.value += tmpOrientationScore
         totalScore.value = heightScore.value + orientationScore.value
 
         console.log('heightScore:', heightScore.value)
         console.log('orientationScore:', orientationScore.value)
         console.log('totalScore:', totalScore.value)
 
+        if (totalScore.value >= MAX_HP) {
+          console.log('Explosion!')
+          playExplosionSound()
+        } else {
+          playSoundEffect(tmpHeightScore + tmpOrientationScore)
+        }
         hasCollided.value = false
       }
-    })
-
-    watch(totalScore, (newVal) => {
-      playSoundEffect(newVal)
     })
 
     const handleMotion = (event) => {
@@ -119,6 +127,7 @@ export default {
       }
     }
 
+    /* スコア計算ロジック */
     const calculateHeightScore = (h) => {
       if (h < 0.2) return 0
       if (h < 0.5) return 1
@@ -127,27 +136,46 @@ export default {
       if (h < 2.0) return 4
       return 5
     }
-
     const calculateOrientationScore = (isUpsideDown) => {
-      return isUpsideDown ? 1 : 0
+      return isUpsideDown ? 2 : 0
     }
 
+    /* 効果音ロジック */
+    /** スコアに応じた効果音を再生
+     * 効果音なし: score = 0
+     * level1: 軽いダメージ
+     * level2: 画面が下向きであればlevel2以上にする
+     * level3: それなりの高さ + 画面が下向きのケース
+     * level4: かなりひどいケース
+     */
     const playSoundEffect = (score) => {
+      console.log('playSoundEffect:', score)
       const audio = new Audio()
-      if (score < 5) {
+      if (score < 1) {
+        return
+      } else if (score < 2) {
         audio.src = seLevel1
-      } else if (score < 10) {
+      } else if (score < 4) {
         audio.src = seLevel2
-      } else if (score < 15) {
+      } else if (score < 5) {
         audio.src = seLevel3
-      } else if (score < 20) {
-        audio.src = seLevel4
       } else {
-        audio.src = seLevel5
+        audio.src = seLevel4
       }
       audio.play()
     }
+    const playExplosionSound = () => {
+      const audio = new Audio(seLevel5)
+      audio.play()
+    }
 
+    const resetScore = () => {
+      heightScore.value = 0
+      orientationScore.value = 0
+      totalScore.value = 0
+    }
+
+    /* debug用ロジック */
     const isDebug = ref(false)
     const debugAddHeightScore = () => {
       heightScore.value++
@@ -174,6 +202,7 @@ export default {
 
 
     return {
+      MAX_HP,
       accelerometerX,
       accelerometerY,
       accelerometerZ,
@@ -185,6 +214,7 @@ export default {
       orientaionBeta,
       orientaionGamma,
       orientationScore,
+      resetScore,
       totalScore,
       debugAddHeightScore,
       debugAddOrientationScore,
@@ -204,6 +234,8 @@ export default {
       Current Damage to Your Smartphone: {{ totalScore }}
     </p>
 
+    <button v-if="totalScore >= MAX_HP * 2" @click="resetScore()">……修復しますか？</button>
+
     <p v-if="heightScore > 0">
       Height of the Drop (meters): {{ height.toFixed(2) }}
     </p>
@@ -214,11 +246,11 @@ export default {
   </div>
   <div v-show="isDebug">
     <div>
-      <button @click="debugAddHeightScore">add height score</button>
+      <button @click="debugAddHeightScore()">add height score</button>
       <br>
-      <button @click="debugAddOrientationScore">add orientation score</button>
+      <button @click="debugAddOrientationScore()">add orientation score</button>
       <br>
-      <button @click="debugHasCollided">hasCollided: {{ hasCollided }}</button>
+      <button @click="debugHasCollided()">hasCollided: {{ hasCollided }}</button>
     </div>
 
     <div>
