@@ -148,7 +148,7 @@ export default {
       audio.play()
     }
 
-    const isDebug = ref(true)
+    const isDebug = ref(false)
     const debugAddHeightScore = () => {
       heightScore.value++
     }
@@ -161,6 +161,15 @@ export default {
       } else {
         hasCollided.value = true
       }
+    }
+    // 小数点以下の桁数を指定し、桁数に応じて0埋めした文字列を返す
+    const debugFormatDecimal = (num, intDesit = 3, decimalDesit = 2) => {
+      const ajustedNum = Math.floor(num * 10 ** decimalDesit) / 10 ** decimalDesit
+      let [intStr, decimalStr] = ajustedNum.toString().split('.')
+      intStr = intStr.padStart(intDesit, '0')
+      if (!decimalStr) decimalStr = '0'.repeat(decimalDesit)
+      decimalStr = decimalStr.padEnd(decimalDesit, '0')
+      return `${intStr}.${decimalStr}`
     }
 
 
@@ -176,9 +185,11 @@ export default {
       orientaionBeta,
       orientaionGamma,
       orientationScore,
+      totalScore,
       debugAddHeightScore,
       debugAddOrientationScore,
       debugHasCollided,
+      debugFormatDecimal,
       hasCollided,
     }
   },
@@ -190,7 +201,7 @@ export default {
   <div>
     <p v-if="errorMsg">{{ errorMsg }}</p>
     <p v-else>
-      Current Damage to Your Smartphone: {{ heightScore }}
+      Current Damage to Your Smartphone: {{ totalScore }}
     </p>
 
     <p v-if="heightScore > 0">
@@ -198,6 +209,9 @@ export default {
     </p>
   </div>
 
+  <div>
+    <input type="checkbox" v-model="isDebug"> Debug Mode
+  </div>
   <div v-show="isDebug">
     <div>
       <button @click="debugAddHeightScore">add height score</button>
@@ -215,9 +229,7 @@ export default {
     </div>
 
     <div>
-      <p>orientaionAlpha: {{ orientaionAlpha }}</p>
-      <p>orientaionBeta: {{ orientaionBeta }}</p>
-      <p>orientaionGamma: {{ orientaionGamma }}</p>
+      <p>orientaion (A, B, G): {{ debugFormatDecimal(orientaionAlpha) }}, {{ debugFormatDecimal(orientaionBeta) }}, {{ debugFormatDecimal(orientaionGamma) }}</p>
       <p>orientationScore: {{ orientationScore }}</p>
     </div>
   </div>
