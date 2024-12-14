@@ -24,6 +24,8 @@ export default {
 
     const hasCollided = ref(false)
 
+    const crackCount = ref(0)
+
     const accelerometerX = ref(0)
     const accelerometerY = ref(0)
     const accelerometerZ = ref(0)
@@ -78,6 +80,8 @@ export default {
         } else {
           playSoundEffect(tmpHeightScore + tmpOrientationScore)
         }
+
+        drawCrack()
         hasCollided.value = false
       }
     })
@@ -175,6 +179,11 @@ export default {
       totalScore.value = 0
     }
 
+    /* ひび割れ描画ロジック */
+    const drawCrack = () => {
+      crackCount.value++
+    }
+
     /* debug用ロジック */
     const isDebug = ref(false)
     const debugAddHeightScore = () => {
@@ -206,6 +215,7 @@ export default {
       accelerometerX,
       accelerometerY,
       accelerometerZ,
+      crackCount,
       errorMsg,
       height,
       heightScore,
@@ -238,6 +248,9 @@ export default {
 
     <p v-if="heightScore > 0">
       Height of the Drop (meters): {{ height.toFixed(2) }}
+    </p>
+    <p>
+      {{ crackCount }} cracks
     </p>
   </div>
 
