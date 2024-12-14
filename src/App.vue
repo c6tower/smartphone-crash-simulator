@@ -1,9 +1,8 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
-  <HelloWorld msg="Smartphone Crash Simulator" />
+  <router-view />
 </template>
 
 <style scoped>

@@ -16,6 +16,7 @@ import crack_05 from '/src/assets/img/crack_05.png'
 export default {
   props: {
     msg: String,
+    showDebug: Boolean,
   },
   setup() {
     const GRAVITY = 9.8
@@ -320,7 +321,13 @@ export default {
     class="background-container"
   >
     <div class="mini-container">
-      <button class="debug-button" @click="debugToggle()">isDebug: {{ isDebug }}</button>
+      <button
+        v-if="showDebug"
+        class="debug-button"
+        @click="debugToggle()"
+      >
+        isDebug: {{ isDebug }}
+      </button>
 
       <h1>{{ msg }}</h1>
 
