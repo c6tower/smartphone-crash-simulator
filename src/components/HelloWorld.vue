@@ -63,22 +63,50 @@ export default {
     const containerHeight = ref('100vh')
     const TEXTS = {
       need_reset: '修復しますか……？',
+      devicemotion_not_supported: 'お使いの端末は加速度センサーに対応していません。',
+      devicemotion_not_allowed: '加速度センサーの使用が許可されませんでした。',
+      deviceorientation_not_supported: 'お使いの端末はジャイロセンサーに対応していません。',
+      deviceorientation_not_allowed: 'ジャイロセンサーの使用が許可されませんでした。',
     }
 
     onMounted(() => {
       if ('DeviceMotionEvent' in window) {
-        // TODO: add Permission API for iOS
-        window.addEventListener('devicemotion', handleMotion)
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission()
+            .then((response) => {
+              if (response === 'granted') {
+                window.addEventListener('devicemotion', handleMotion)
+              } else {
+                errorMsg.value = TEXTS.devicemotion_not_allowed
+                console.error(errorMsg.value)
+              }
+            })
+            .catch(console.error)
+        } else {
+          window.addEventListener('devicemotion', handleMotion)
+        }
       } else {
-        errorMsg.value = 'お使いの端末は加速度センサーに対応していません。'
+        errorMsg.value = TEXTS.devicemotion_not_supported
         console.error(errorMsg.value)
       }
 
-      // TODO: debug only, remove later
       if ('DeviceOrientationEvent' in window) {
-        window.addEventListener('deviceorientation', handleOrientation)
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          DeviceOrientationEvent.requestPermission()
+            .then((response) => {
+              if (response === 'granted') {
+                window.addEventListener('deviceorientation', handleOrientation)
+              } else {
+                errorMsg.value = TEXTS.deviceorientation_not_allowed
+                console.error(errorMsg.value)
+              }
+            })
+            .catch(console.error)
+        } else {
+          window.addEventListener('deviceorientation', handleOrientation)
+        }
       } else {
-        errorMsg.value = 'お使いの端末はジャイロセンサーに対応していません。'
+        errorMsg.value = TEXTS.deviceorientation_not_supported
         console.error(errorMsg.value)
       }
 
@@ -298,7 +326,7 @@ export default {
       <button class="debug-button" @click="debugToggle()">isDebug: {{ isDebug }}</button>
 
       <h1>{{ msg }}</h1>
-      <p v-if="errorMsg">{{ errorMsg }}</p>
+      <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       <p v-else>
         Current Damage to Your Smartphone: {{ totalDamage }}
       </p>
@@ -374,5 +402,9 @@ export default {
   color: #fff;
   font-size: 1.5em;
   font-weight: bold;
+}
+
+.error-msg {
+  color: #ff0000;
 }
 </style>
