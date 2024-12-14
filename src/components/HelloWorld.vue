@@ -1,5 +1,5 @@
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 
 import seLevel1 from '/src/assets/se/level_1.mp3'
 import seLevel2 from '/src/assets/se/level_2.mp3'
@@ -24,12 +24,10 @@ export default {
     const errorMsg = ref('')
 
     const height = ref(0)
-    const heightScore = ref(0)
+    const totalHeightDamage = ref(0)
     const isUpsideDown = ref(false)
-    const orientationScore = ref(0)
+    const totalOrientationDamage = ref(0)
     const totalDamage = ref(0)
-
-    const hasCollided = ref(false)
 
     const crackedImg = ref('')
 
@@ -129,37 +127,6 @@ export default {
       })
     }
 
-    onMounted(() => {
-      initContentHeight()
-      initDeviceSensor()
-    })
-
-    // 衝突を検知した際の処理
-    watch(hasCollided, (newVal) => {
-      if (newVal) {
-        const tmpHeightScore = calculateHeightScore(height.value)
-        const tmpOrientationScore = calculateOrientationScore(isUpsideDown.value)
-
-        heightScore.value += tmpHeightScore
-        orientationScore.value += tmpOrientationScore
-        totalDamage.value = heightScore.value + orientationScore.value
-
-        console.log('heightScore:', heightScore.value)
-        console.log('orientationScore:', orientationScore.value)
-        console.log('totalDamage:', totalDamage.value)
-
-        if (totalDamage.value >= DAMAGE_THRESHOLDS.LEVEL_5.limit) {
-          console.log('Explosion!')
-          playExplosionSound()
-        } else {
-          playSoundEffect(tmpHeightScore + tmpOrientationScore)
-        }
-
-        drawCrack()
-        hasCollided.value = false
-      }
-    })
-
     const handleMotion = (event) => {
       const acc = event.accelerationIncludingGravity
       if (!acc) return
@@ -175,7 +142,6 @@ export default {
       if (totalAcceleration < FALL_THRESHOLD && !falling) {
         falling = true
         startTime = performance.now()
-        isUpsideDown.value = false
       } else if (falling && totalAcceleration > GRAVITY * 2) {
         falling = false
         endTime = performance.now()
@@ -183,13 +149,7 @@ export default {
         const fallTime = (endTime - startTime) / 1000
         height.value = 0.5 * GRAVITY * fallTime ** 2
 
-        // 落下時に画面が地面に向いていたかどうかの判定
-        if (orientaionBeta.value < -170 || orientaionBeta.value > 170) {
-          isUpsideDown.value = true
-        }
-
-        hasCollided.value = true
-        // TODO: triggerCollisionEvent() を実装しても良いかも
+        triggerCollisionEvent()
       }
     }
 
@@ -205,8 +165,27 @@ export default {
       }
     }
 
+    // 衝突を検知した際の処理
+    const triggerCollisionEvent = () => {
+      const heightDamage = calculateHeightDamage(height.value)
+      const orientationDamage = calculateOrientationDamage(isUpsideDown.value)
+
+      totalHeightDamage.value += heightDamage
+      totalOrientationDamage.value += orientationDamage
+      totalDamage.value = totalHeightDamage.value + totalOrientationDamage.value
+
+      if (totalDamage.value >= DAMAGE_THRESHOLDS.LEVEL_5.limit) {
+        console.log('Explosion!')
+        playExplosionSound()
+      } else {
+        playSoundEffect(heightDamage + orientationDamage)
+      }
+
+      drawCrack()
+    }
+
     /* スコア計算ロジック */
-    const calculateHeightScore = (h) => {
+    const calculateHeightDamage = (h) => {
       if (h < 0.2) return 0
       if (h < 0.5) return 1
       if (h < 1.0) return 2
@@ -214,7 +193,7 @@ export default {
       if (h < 2.0) return 4
       return 5
     }
-    const calculateOrientationScore = (isUpsideDown) => {
+    const calculateOrientationDamage = (isUpsideDown) => {
       return isUpsideDown ? 2 : 0
     }
 
@@ -248,8 +227,8 @@ export default {
     }
 
     const resetDamage = () => {
-      heightScore.value = 0
-      orientationScore.value = 0
+      totalHeightDamage.value = 0
+      totalOrientationDamage.value = 0
       totalDamage.value = 0
 
       // TODO: ここで背景画像リセットは暫定処理なので改善する
@@ -281,17 +260,13 @@ export default {
       isDebug.value = !isDebug.value
     }
     const debugAddHeightScore = () => {
-      heightScore.value++
+      totalHeightDamage.value++
     }
     const debugAddOrientationScore = () => {
-      orientationScore.value++
+      totalOrientationDamage.value++
     }
-    const debugHasCollided = () => {
-      if (hasCollided.value) {
-        hasCollided.value = false
-      } else {
-        hasCollided.value = true
-      }
+    const debugTriggerCollide = () => {
+      triggerCollisionEvent()
     }
     // 小数点以下の桁数を指定し、桁数に応じて0埋めした文字列を返す
     const debugFormatDecimal = (num, intDesit = 3, decimalDesit = 2) => {
@@ -303,6 +278,10 @@ export default {
       return `${intStr}.${decimalStr}`
     }
 
+    onMounted(() => {
+      initContentHeight()
+      initDeviceSensor()
+    })
 
     return {
       DAMAGE_THRESHOLDS,
@@ -313,20 +292,19 @@ export default {
       crack_02,
       errorMsg,
       height,
-      heightScore,
+      totalHeightDamage,
       isDebug,
       orientaionAlpha,
       orientaionBeta,
       orientaionGamma,
-      orientationScore,
+      totalOrientationDamage,
       resetDamage,
       totalDamage,
       debugAddHeightScore,
       debugAddOrientationScore,
-      debugHasCollided,
+      debugTriggerCollide,
       debugFormatDecimal,
       debugToggle,
-      hasCollided,
       crackedImg,
       TEXTS,
       requestPermission,
@@ -367,7 +345,7 @@ export default {
         {{TEXTS.need_reset}}
       </button>
 
-      <p v-if="heightScore > 0">
+      <p v-if="totalHeightDamage > 0">
         Height of the Drop (meters): {{ height.toFixed(2) }}
       </p>
 
@@ -377,19 +355,19 @@ export default {
           <br>
           <button @click="debugAddOrientationScore()">add orientation score</button>
           <br>
-          <button @click="debugHasCollided()">hasCollided: {{ hasCollided }}</button>
+          <button @click="debugTriggerCollide()">TriggerCollided</button>
         </div>
 
         <div>
           <p>accelerometerX: {{ accelerometerX }}</p>
           <p>accelerometerY: {{ accelerometerY }}</p>
           <p>accelerometerZ: {{ accelerometerZ }}</p>
-          <p>heightScore: {{ heightScore }}</p>
+          <p>totalHeightDamage: {{ totalHeightDamage }}</p>
         </div>
 
         <div>
           <p>orientaion (A, B, G): {{ debugFormatDecimal(orientaionAlpha) }}, {{ debugFormatDecimal(orientaionBeta) }}, {{ debugFormatDecimal(orientaionGamma) }}</p>
-          <p>orientationScore: {{ orientationScore }}</p>
+          <p>totalOrientationDamage: {{ totalOrientationDamage }}</p>
         </div>
       </div>
     </div>
