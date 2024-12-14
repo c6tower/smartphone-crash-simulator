@@ -48,6 +48,14 @@ export default {
       LEVEL_5: new DamageThreshold(22),
     }
 
+    const AUDIO_MAP = {
+      LEVEL_1: new Audio(seLevel1),
+      LEVEL_2: new Audio(seLevel2),
+      LEVEL_3: new Audio(seLevel3),
+      LEVEL_4: new Audio(seLevel4),
+      LEVEL_5: new Audio(seLevel5),
+    }
+
     let startTime = null
     let endTime = null
     let falling = false
@@ -210,23 +218,22 @@ export default {
      */
     const playSoundEffect = (score) => {
       console.log('playSoundEffect:', score)
-      const audio = new Audio()
+      let audio
       if (score < 1) {
         return
       } else if (score < 2) {
-        audio.src = seLevel1
+        audio = AUDIO_MAP.LEVEL_1
       } else if (score < 4) {
-        audio.src = seLevel2
+        audio = AUDIO_MAP.LEVEL_2
       } else if (score < 5) {
-        audio.src = seLevel3
+        audio = AUDIO_MAP.LEVEL_3
       } else {
-        audio.src = seLevel4
+        audio = AUDIO_MAP.LEVEL_4
       }
       audio.play()
     }
     const playExplosionSound = () => {
-      const audio = new Audio(seLevel5)
-      audio.play()
+      AUDIO_MAP.LEVEL_5.play()
     }
 
     const resetDamage = () => {
