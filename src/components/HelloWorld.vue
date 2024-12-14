@@ -138,6 +138,13 @@ export default {
       })
     }
 
+    // アクセス時に音声再生を許可するための処理
+    const initAudio = () => {
+      Object.values(AUDIO_MAP).forEach((audio) => {
+        audio.load()
+      })
+    }
+
     const handleMotion = (event) => {
       const acc = event.accelerationIncludingGravity
       if (!acc) return
@@ -293,6 +300,7 @@ export default {
 
     onMounted(() => {
       initContentHeight()
+      initAudio()
       initDeviceSensor()
     })
 
