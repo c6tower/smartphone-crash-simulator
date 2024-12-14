@@ -65,9 +65,12 @@ export default {
     const orientaionBeta = ref(0)
     const orientaionGamma = ref(0)
 
+    const hasUserAction = ref(false)
+
     // 画面の高さを保持
     const containerHeight = ref('100vh')
     const TEXTS = {
+      start_msg: 'これはジョークアプリです。スマホが傷まないようお気をつけください。また、音量にご注意ください。',
       need_reset: '修復しますか……？',
       devicemotion_not_supported: 'お使いの端末は加速度センサーに対応していません。',
       devicemotion_not_allowed: '加速度センサーの使用が許可されませんでした。',
@@ -331,6 +334,7 @@ export default {
       requestPermission,
       permissionGranted,
       showDebug,
+      hasUserAction,
     }
   },
 }
@@ -341,7 +345,32 @@ export default {
     :style="{height: containerHeight, backgroundImage: crackedImg}"
     class="background-container"
   >
-    <div class="mini-container">
+    <div
+      v-if="!hasUserAction"
+      class="mini-container"
+    >
+      <h1>{{ msg }}</h1>
+      <button
+        v-if="!permissionGranted"
+        class="request-permission-btn"
+        @click="requestPermission()"
+      >
+        {{ TEXTS.request_permission }}
+      </button>
+
+      <button
+        v-if="permissionGranted && !hasUserAction"
+        @click="hasUserAction = true"
+        class="request-permission-btn"
+      >
+        {{ TEXTS.start_msg }}
+      </button>
+    </div>
+
+    <div
+      v-if="hasUserAction"
+      class="mini-container"
+    >
       <button
         v-if="showDebug"
         class="debug-button"
@@ -351,14 +380,6 @@ export default {
       </button>
 
       <h1>{{ msg }}</h1>
-
-      <button
-        v-if="!permissionGranted"
-        class="request-permission-btn"
-        @click="requestPermission()"
-      >
-        {{ TEXTS.request_permission }}
-      </button>
 
       <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       <p v-else>
