@@ -230,10 +230,13 @@ export default {
       } else {
         audio = AUDIO_MAP.LEVEL_4
       }
+      audio.currentTime = 0
       audio.play()
     }
     const playExplosionSound = () => {
-      AUDIO_MAP.LEVEL_5.play()
+      let audio = AUDIO_MAP.LEVEL_5
+      audio.currentTime = 0
+      audio.play()
     }
 
     const resetDamage = () => {
