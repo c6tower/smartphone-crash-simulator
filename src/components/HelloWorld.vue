@@ -99,7 +99,7 @@ export default {
       }
     }
 
-    const addEventListener = () => {
+    const initDeviceSensor = () => {
       if ('DeviceMotionEvent' in window) {
         window.addEventListener('devicemotion', handleMotion)
       } else {
@@ -121,7 +121,7 @@ export default {
       }
     }
 
-    const setContentHeight = () => {
+    const initContentHeight = () => {
       // 画面の高さを取得
       containerHeight.value = `${window.innerHeight}px`
       window.addEventListener('resize', () => {
@@ -130,8 +130,8 @@ export default {
     }
 
     onMounted(() => {
-      setContentHeight()
-      addEventListener()
+      initContentHeight()
+      initDeviceSensor()
     })
 
     // 衝突を検知した際の処理
