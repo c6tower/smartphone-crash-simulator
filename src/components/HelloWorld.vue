@@ -1,10 +1,17 @@
 <script>
 import { ref, onMounted, watch } from 'vue'
+
 import seLevel1 from '/src/assets/se/level_1.mp3'
 import seLevel2 from '/src/assets/se/level_2.mp3'
 import seLevel3 from '/src/assets/se/level_3.mp3'
 import seLevel4 from '/src/assets/se/level_4.mp3'
 import seLevel5 from '/src/assets/se/level_5.mp3'
+
+import crack_01 from '/src/assets/img/crack_01.png'
+import crack_02 from '/src/assets/img/crack_02.png'
+import crack_03 from '/src/assets/img/crack_03.png'
+import crack_04 from '/src/assets/img/crack_04.png'
+import crack_05 from '/src/assets/img/crack_05.png'
 
 export default {
   props: {
@@ -20,16 +27,28 @@ export default {
     const heightScore = ref(0)
     const isUpsideDown = ref(false)
     const orientationScore = ref(0)
-    const totalScore = ref(0)
+    const totalDamage = ref(0)
 
     const hasCollided = ref(false)
+
+    const crackedImg = ref('')
 
     const accelerometerX = ref(0)
     const accelerometerY = ref(0)
     const accelerometerZ = ref(0)
 
-    // スコア閾値
-    const MAX_HP = 10
+    class DamageThreshold {
+      constructor(limit) {
+        this.limit = limit
+      }
+    }
+    const DAMAGE_THRESHOLDS = {
+      LEVEL_1: new DamageThreshold(2),
+      LEVEL_2: new DamageThreshold(4),
+      LEVEL_3: new DamageThreshold(8),
+      LEVEL_4: new DamageThreshold(14),
+      LEVEL_5: new DamageThreshold(22),
+    }
 
     let startTime = null
     let endTime = null
@@ -39,6 +58,12 @@ export default {
     const orientaionAlpha = ref(0)
     const orientaionBeta = ref(0)
     const orientaionGamma = ref(0)
+
+    // 画面の高さを保持
+    const containerHeight = ref('100vh')
+    const TEXTS = {
+      need_reset: '修復しますか……？',
+    }
 
     onMounted(() => {
       if ('DeviceMotionEvent' in window) {
@@ -56,6 +81,12 @@ export default {
         errorMsg.value = 'お使いの端末はジャイロセンサーに対応していません。'
         console.error(errorMsg.value)
       }
+
+      // 画面の高さを取得
+      containerHeight.value = `${window.innerHeight}px`
+      window.addEventListener('resize', () => {
+        containerHeight.value = `${window.innerHeight}px`
+      })
     })
 
     // 衝突を検知した際の処理
@@ -66,18 +97,20 @@ export default {
 
         heightScore.value += tmpHeightScore
         orientationScore.value += tmpOrientationScore
-        totalScore.value = heightScore.value + orientationScore.value
+        totalDamage.value = heightScore.value + orientationScore.value
 
         console.log('heightScore:', heightScore.value)
         console.log('orientationScore:', orientationScore.value)
-        console.log('totalScore:', totalScore.value)
+        console.log('totalDamage:', totalDamage.value)
 
-        if (totalScore.value >= MAX_HP) {
+        if (totalDamage.value >= DAMAGE_THRESHOLDS.LEVEL_5.limit) {
           console.log('Explosion!')
           playExplosionSound()
         } else {
           playSoundEffect(tmpHeightScore + tmpOrientationScore)
         }
+
+        drawCrack()
         hasCollided.value = false
       }
     })
@@ -169,14 +202,39 @@ export default {
       audio.play()
     }
 
-    const resetScore = () => {
+    const resetDamage = () => {
       heightScore.value = 0
       orientationScore.value = 0
-      totalScore.value = 0
+      totalDamage.value = 0
+
+      // TODO: ここで背景画像リセットは暫定処理なので改善する
+      crackedImg.value = ''
+    }
+
+    /* ひび割れ描画ロジック */
+    const drawCrack = () => {
+      let img_path = ''
+      if (totalDamage.value < DAMAGE_THRESHOLDS.LEVEL_1.limit) {
+        img_path = ''
+      } else if (totalDamage.value < DAMAGE_THRESHOLDS.LEVEL_2.limit) {
+        img_path = crack_01
+      } else if (totalDamage.value < DAMAGE_THRESHOLDS.LEVEL_3.limit) {
+        img_path = crack_02
+      } else if (totalDamage.value < DAMAGE_THRESHOLDS.LEVEL_4.limit) {
+        img_path = crack_03
+      } else if (totalDamage.value < DAMAGE_THRESHOLDS.LEVEL_5.limit) {
+        img_path = crack_04
+      } else {
+        img_path = crack_05
+      }
+      crackedImg.value = `url(${img_path})`
     }
 
     /* debug用ロジック */
     const isDebug = ref(false)
+    const debugToggle = () => {
+      isDebug.value = !isDebug.value
+    }
     const debugAddHeightScore = () => {
       heightScore.value++
     }
@@ -202,10 +260,12 @@ export default {
 
 
     return {
-      MAX_HP,
+      DAMAGE_THRESHOLDS,
       accelerometerX,
       accelerometerY,
       accelerometerZ,
+      containerHeight,
+      crack_02,
       errorMsg,
       height,
       heightScore,
@@ -214,61 +274,105 @@ export default {
       orientaionBeta,
       orientaionGamma,
       orientationScore,
-      resetScore,
-      totalScore,
+      resetDamage,
+      totalDamage,
       debugAddHeightScore,
       debugAddOrientationScore,
       debugHasCollided,
       debugFormatDecimal,
+      debugToggle,
       hasCollided,
+      crackedImg,
+      TEXTS,
     }
   },
 }
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
-  <div>
-    <p v-if="errorMsg">{{ errorMsg }}</p>
-    <p v-else>
-      Current Damage to Your Smartphone: {{ totalScore }}
-    </p>
+  <div
+    :style="{height: containerHeight, backgroundImage: crackedImg}"
+    class="background-container"
+  >
+    <div class="mini-container">
+      <button class="debug-button" @click="debugToggle()">isDebug: {{ isDebug }}</button>
 
-    <button v-if="totalScore >= MAX_HP * 2" @click="resetScore()">……修復しますか？</button>
+      <h1>{{ msg }}</h1>
+      <p v-if="errorMsg">{{ errorMsg }}</p>
+      <p v-else>
+        Current Damage to Your Smartphone: {{ totalDamage }}
+      </p>
 
-    <p v-if="heightScore > 0">
-      Height of the Drop (meters): {{ height.toFixed(2) }}
-    </p>
-  </div>
+      <button
+        v-if="totalDamage >= DAMAGE_THRESHOLDS.LEVEL_5.limit * 1.1"
+        @click="resetDamage()"
+        class="reset-button"
+      >
+        {{TEXTS.need_reset}}
+      </button>
 
-  <div>
-    <input type="checkbox" v-model="isDebug"> Debug Mode
-  </div>
-  <div v-show="isDebug">
-    <div>
-      <button @click="debugAddHeightScore()">add height score</button>
-      <br>
-      <button @click="debugAddOrientationScore()">add orientation score</button>
-      <br>
-      <button @click="debugHasCollided()">hasCollided: {{ hasCollided }}</button>
-    </div>
+      <p v-if="heightScore > 0">
+        Height of the Drop (meters): {{ height.toFixed(2) }}
+      </p>
 
-    <div>
-      <p>accelerometerX: {{ accelerometerX }}</p>
-      <p>accelerometerY: {{ accelerometerY }}</p>
-      <p>accelerometerZ: {{ accelerometerZ }}</p>
-      <p>heightScore: {{ heightScore }}</p>
-    </div>
+      <div v-show="isDebug">
+        <div>
+          <button @click="debugAddHeightScore()">add height score</button>
+          <br>
+          <button @click="debugAddOrientationScore()">add orientation score</button>
+          <br>
+          <button @click="debugHasCollided()">hasCollided: {{ hasCollided }}</button>
+        </div>
 
-    <div>
-      <p>orientaion (A, B, G): {{ debugFormatDecimal(orientaionAlpha) }}, {{ debugFormatDecimal(orientaionBeta) }}, {{ debugFormatDecimal(orientaionGamma) }}</p>
-      <p>orientationScore: {{ orientationScore }}</p>
+        <div>
+          <p>accelerometerX: {{ accelerometerX }}</p>
+          <p>accelerometerY: {{ accelerometerY }}</p>
+          <p>accelerometerZ: {{ accelerometerZ }}</p>
+          <p>heightScore: {{ heightScore }}</p>
+        </div>
+
+        <div>
+          <p>orientaion (A, B, G): {{ debugFormatDecimal(orientaionAlpha) }}, {{ debugFormatDecimal(orientaionBeta) }}, {{ debugFormatDecimal(orientaionGamma) }}</p>
+          <p>orientationScore: {{ orientationScore }}</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.background-container {
+  width: 100%;
+  /* background-image: url('/src/assets/img/crack_02.png'); */
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  background-size: 230% auto;
+
+  display: flex;
+  /* 子要素を中央揃えにする */
+  align-items: center;
+  justify-content: normal;
+}
 .read-the-docs {
   color: #888;
+}
+
+.mini-container {
+  width: 100%;
+}
+
+.debug-button {
+  /* 左上固定 */
+  position: fixed;
+  top: 20px;
+  right: 10px;
+}
+
+.reset-button {
+  background-color: rgba(255, 0, 0, 0.5);
+  border: 2px double #fff;
+  color: #fff;
+  font-size: 1.5em;
+  font-weight: bold;
 }
 </style>
