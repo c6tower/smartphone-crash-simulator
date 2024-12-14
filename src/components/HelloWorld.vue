@@ -67,54 +67,71 @@ export default {
       devicemotion_not_allowed: '加速度センサーの使用が許可されませんでした。',
       deviceorientation_not_supported: 'お使いの端末はジャイロセンサーに対応していません。',
       deviceorientation_not_allowed: 'ジャイロセンサーの使用が許可されませんでした。',
+      request_permission: '加速度センサーとジャイロセンサーの使用を許可する。',
     }
 
-    onMounted(() => {
-      if ('DeviceMotionEvent' in window) {
+    const permissionGranted = ref(false)
+
+    const requestPermission = async () => {
+      try {
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
-          DeviceMotionEvent.requestPermission()
-            .then((response) => {
-              if (response === 'granted') {
-                window.addEventListener('devicemotion', handleMotion)
-              } else {
-                errorMsg.value = TEXTS.devicemotion_not_allowed
-                console.error(errorMsg.value)
-              }
-            })
-            .catch(console.error)
-        } else {
-          window.addEventListener('devicemotion', handleMotion)
+          const response = await DeviceMotionEvent.requestPermission()
+          if (response !== 'granted') {
+            errorMsg.value = TEXTS.devicemotion_not_allowed
+            console.error(errorMsg.value)
+            return
+          }
         }
+
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const response = await DeviceOrientationEvent.requestPermission()
+          if (response !== 'granted') {
+            errorMsg.value = TEXTS.deviceorientation_not_allowed
+            console.error(errorMsg.value)
+            return
+          }
+        }
+
+        permissionGranted.value = true
+      } catch (e) {
+        console.error(e)
+        errorMsg.value = TEXTS.devicemotion_not_allowed + TEXTS.deviceorientation_not_allowed
+      }
+    }
+
+    const addEventListener = () => {
+      if ('DeviceMotionEvent' in window) {
+        window.addEventListener('devicemotion', handleMotion)
       } else {
         errorMsg.value = TEXTS.devicemotion_not_supported
         console.error(errorMsg.value)
       }
 
       if ('DeviceOrientationEvent' in window) {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-          DeviceOrientationEvent.requestPermission()
-            .then((response) => {
-              if (response === 'granted') {
-                window.addEventListener('deviceorientation', handleOrientation)
-              } else {
-                errorMsg.value = TEXTS.deviceorientation_not_allowed
-                console.error(errorMsg.value)
-              }
-            })
-            .catch(console.error)
-        } else {
-          window.addEventListener('deviceorientation', handleOrientation)
-        }
+        window.addEventListener('deviceorientation', handleOrientation)
       } else {
         errorMsg.value = TEXTS.deviceorientation_not_supported
         console.error(errorMsg.value)
       }
 
+      if (typeof DeviceMotionEvent.requestPermission !== 'function'
+        && typeof DeviceOrientationEvent.requestPermission !== 'function'
+      ) {
+        permissionGranted.value = true
+      }
+    }
+
+    const setContentHeight = () => {
       // 画面の高さを取得
       containerHeight.value = `${window.innerHeight}px`
       window.addEventListener('resize', () => {
         containerHeight.value = `${window.innerHeight}px`
       })
+    }
+
+    onMounted(() => {
+      setContentHeight()
+      addEventListener()
     })
 
     // 衝突を検知した際の処理
@@ -312,6 +329,8 @@ export default {
       hasCollided,
       crackedImg,
       TEXTS,
+      requestPermission,
+      permissionGranted,
     }
   },
 }
@@ -326,6 +345,15 @@ export default {
       <button class="debug-button" @click="debugToggle()">isDebug: {{ isDebug }}</button>
 
       <h1>{{ msg }}</h1>
+
+      <button
+        v-if="!permissionGranted"
+        class="request-permission-btn"
+        @click="requestPermission()"
+      >
+        {{ TEXTS.request_permission }}
+      </button>
+
       <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       <p v-else>
         Current Damage to Your Smartphone: {{ totalDamage }}
@@ -402,6 +430,15 @@ export default {
   color: #fff;
   font-size: 1.5em;
   font-weight: bold;
+}
+
+.request-permission-btn {
+  background-color: rgba(0, 0, 255, 0.5);
+  border: 2px double #fff;
+  color: #fff;
+  font-size: 1.2em;
+  font-weight: bold;
+  width: 80%;
 }
 
 .error-msg {
