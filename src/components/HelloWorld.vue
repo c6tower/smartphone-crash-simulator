@@ -56,6 +56,14 @@ export default {
       LEVEL_5: new Audio(seLevel5),
     }
 
+    const BACKGROUND_IMAGES = {
+      CRACK_01: new Image(crack_01),
+      CRACK_02: new Image(crack_02),
+      CRACK_03: new Image(crack_03),
+      CRACK_04: new Image(crack_04),
+      CRACK_05: new Image(crack_05),
+    }
+
     let startTime = null
     let endTime = null
     let falling = false
@@ -145,6 +153,14 @@ export default {
     const initAudio = () => {
       Object.values(AUDIO_MAP).forEach((audio) => {
         audio.load()
+      })
+    }
+
+    // 背景画像の切り替えをスムーズにするため、事前に画像を読み込んでおく
+    const initBackgroundImage = () => {
+      Object.values(BACKGROUND_IMAGES).forEach((src) => {
+        const img = new Image()
+        img.src = src
       })
     }
 
@@ -304,6 +320,7 @@ export default {
     onMounted(() => {
       initContentHeight()
       initAudio()
+      initBackgroundImage()
       initDeviceSensor()
     })
 
