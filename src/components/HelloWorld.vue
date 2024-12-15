@@ -56,6 +56,14 @@ export default {
       LEVEL_5: new Audio(seLevel5),
     }
 
+    const BACKGROUND_IMAGES = {
+      LEVEL_1: crack_01,
+      LEVEL_2: crack_02,
+      LEVEL_3: crack_03,
+      LEVEL_4: crack_04,
+      LEVEL_5: crack_05,
+    }
+
     let startTime = null
     let endTime = null
     let falling = false
@@ -138,6 +146,13 @@ export default {
       containerHeight.value = `${window.innerHeight}px`
       window.addEventListener('resize', () => {
         containerHeight.value = `${window.innerHeight}px`
+      })
+    }
+
+    const initBackgroundImage = () => {
+      Object.values(BACKGROUND_IMAGES).forEach((src) => {
+        const image = new Image()
+        image.src = src
       })
     }
 
@@ -267,7 +282,7 @@ export default {
       } else {
         img_path = crack_05
       }
-      crackedImg.value = `url(${img_path})`
+      crackedImg.value = img_path
     }
 
     /* debug用ロジック */
@@ -296,6 +311,7 @@ export default {
 
     onMounted(() => {
       initContentHeight()
+      initBackgroundImage()
       initDeviceSensor()
     })
 
@@ -334,7 +350,7 @@ export default {
 
 <template>
   <div
-    :style="{height: containerHeight, backgroundImage: crackedImg}"
+    :style="{height: containerHeight, backgroundImage: `url(${crackedImg})`}"
     class="background-container"
   >
     <div
@@ -427,6 +443,8 @@ export default {
   /* 子要素を中央揃えにする */
   align-items: center;
   justify-content: normal;
+
+  transition: background-image 0.1s;
 }
 .read-the-docs {
   color: #888;
