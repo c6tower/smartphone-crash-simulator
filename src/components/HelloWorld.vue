@@ -149,13 +149,6 @@ export default {
       })
     }
 
-    // アクセス時に音声再生を許可するための処理
-    const initAudio = () => {
-      Object.values(AUDIO_MAP).forEach((audio) => {
-        audio.load()
-      })
-    }
-
     // 背景画像の切り替えをスムーズにするため、事前に画像を読み込んでおく
     const initBackgroundImage = () => {
       Object.values(BACKGROUND_IMAGES).forEach((src) => {
@@ -319,7 +312,6 @@ export default {
 
     onMounted(() => {
       initContentHeight()
-      initAudio()
       initBackgroundImage()
       initDeviceSensor()
     })
